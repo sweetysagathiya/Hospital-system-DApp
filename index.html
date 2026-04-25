@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Healthcare System DApp</title>
+
+    <!-- Tailwind CSS (via CDN for Presentation Speed) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Ethers.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" type="application/javascript"></script>
+
+    <!-- Custom Config for Tailwind Colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        medical: {
+                            light: '#f0f9ff',
+                            DEFAULT: '#0ea5e9', // Sky blue
+                            dark: '#0369a1',
+                        },
+                        blood: '#e11d48', // Rose red for blood module
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans flex flex-col">
+
+    <!-- Header Navigation -->
+    <nav class="bg-white shadow-md border-b-4 border-medical">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+            <div class="flex items-center gap-2">
+                <span class="text-3xl">🏥</span>
+                <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-medical-dark to-medical">MedChain.AI</h1>
+            </div>
+            <div>
+                <button id="connect-btn" class="bg-medical hover:bg-medical-dark text-white px-5 py-2 rounded-full font-semibold transition-all shadow-sm">
+                    Connect Wallet
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Tab Selectors -->
+        <div class="flex flex-wrap gap-2 mb-8 border-b pb-4">
+            <button onclick="switchTab('public')" id="tab-public" class="tab-btn px-4 py-2 font-semibold text-medical-dark border-b-2 border-medical">Public Services</button>
+            <button onclick="switchTab('patient')" id="tab-patient" class="tab-btn px-4 py-2 font-semibold text-slate-500 hover:text-slate-800 transition">My Patient Portal</button>
+            <button onclick="switchTab('doctor')" id="tab-doctor" class="tab-btn px-4 py-2 font-semibold text-slate-500 hover:text-slate-800 transition">Doctor Terminal</button>
+            <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn px-4 py-2 font-semibold text-slate-500 hover:text-slate-800 transition ml-auto">Admin Controls</button>
+        </div>
+
+        <!-- 1. PUBLIC VIEW (Blood Bank) -->
+        <section id="view-public" class="view-section">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+                <h2 class="text-2xl font-bold text-blood mb-2 flex items-center gap-2">🩸 Live Blood Bank Module</h2>
+                <p class="text-slate-500 mb-6">Real-time blood group availability tracking via blockchain immutability.</p>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Cards will be populated by JS -->
+                    <div class="bg-red-50 p-4 rounded-lg border border-red-100 text-center">
+                        <h3 class="text-xl font-bold text-slate-700">A+</h3>
+                        <p class="text-3xl font-black text-blood mt-2" id="blood-A-pos">--</p>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Units Available</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg border border-red-100 text-center">
+                        <h3 class="text-xl font-bold text-slate-700">O-</h3>
+                        <p class="text-3xl font-black text-blood mt-2" id="blood-O-neg">--</p>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Units Available</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg border border-red-100 text-center">
+                        <h3 class="text-xl font-bold text-slate-700">B+</h3>
+                        <p class="text-3xl font-black text-blood mt-2" id="blood-B-pos">--</p>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Units Available</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg border border-red-100 text-center">
+                        <h3 class="text-xl font-bold text-slate-700">AB+</h3>
+                        <p class="text-3xl font-black text-blood mt-2" id="blood-AB-pos">--</p>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">Units Available</p>
+                    </div>
+                </div>
+                <div class="mt-4 text-center">
+                    <button onclick="fetchBloodData()" class="text-sm text-medical hover:underline font-semibold bg-medical-light py-1 px-3 rounded-md">↻ Refresh Ledger</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. PATIENT VIEW -->
+        <section id="view-patient" class="view-section hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2 border-b pb-2">My Electronic Health Records (EHR)</h2>
+                <div class="flex justify-between items-center mb-6 mt-4">
+                    <p class="text-slate-500">View medical history cryptographically assigned to your address.</p>
+                    <button id="btn-fetch-ehr" class="bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 shadow-sm text-sm font-semibold">Fetch My Records</button>
+                </div>
+
+                <!-- EHR Container -->
+                <div id="ehr-container" class="space-y-4">
+                    <div class="p-8 text-center border-2 border-dashed rounded-lg text-slate-400">
+                        Connect wallet as a Patient and click Fetch.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. DOCTOR TERMINAL (AI Simulation) -->
+        <section id="view-doctor" class="view-section hidden flex gap-6 flex-col lg:flex-row">
+            
+            <!-- Input Form -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex-1">
+                <h2 class="text-2xl font-bold text-medical-dark mb-4 border-b pb-2">Medical Input Entry</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Patient Wallet Address</label>
+                        <input type="text" id="doc-patient-addr" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-medical focus:border-transparent outline-none font-mono text-sm" placeholder="0x...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1">Observed Symptoms</label>
+                        <textarea id="doc-symptoms" rows="4" class="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-medical focus:border-transparent outline-none" placeholder="e.g. Patient presents with high fever, dry cough, and fatigue..."></textarea>
+                    </div>
+                    
+                    <button id="btn-run-ai" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md transition-all flex justify-center items-center gap-2">
+                        <span>🧠</span> Generate AI Prescription
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI Output & Blockchain Push -->
+            <div class="bg-purple-50 rounded-xl shadow-sm border border-purple-100 p-6 flex-1 flex flex-col">
+                <h2 class="text-2xl font-bold text-purple-800 mb-4 border-b border-purple-200 pb-2">AI Diagnostic Output</h2>
+                
+                <div class="flex-grow flex flex-col justify-center">
+                    <div id="ai-blank-state" class="text-center text-purple-300 font-semibold italic">
+                        Awaiting symptoms analysis...
+                    </div>
+                    
+                    <div id="ai-result-state" class="hidden space-y-4">
+                        <div class="bg-white p-4 rounded border border-purple-100 shadow-sm">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Suggested Diagnosis</span>
+                            <p id="ai-diagnosis" class="text-lg font-bold text-slate-800 mt-1">--</p>
+                        </div>
+                        <div class="bg-white p-4 rounded border border-purple-100 shadow-sm relative">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Recommended Treatment Hash</span>
+                            <div class="bg-slate-100 p-2 mt-2 rounded font-mono text-xs text-purple-600 break-all border border-slate-200" id="ai-hash">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 border-t border-purple-200 pt-4">
+                    <button id="btn-submit-ehr" disabled class="w-full bg-slate-300 text-slate-500 font-bold py-3 rounded-lg cursor-not-allowed transition-all">Submit Validated Record to Blockchain</button>
+                    <p class="text-xs text-center text-slate-500 mt-2">Requires Gas • Requires Doctor Access Role</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. ADMIN CONTROLS -->
+        <section id="view-admin" class="view-section hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Role Management -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+                    <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Role Management</h2>
+                    <div class="space-y-4">
+                        <div class="flex gap-2">
+                            <input type="text" id="admin-reg-doctor" placeholder="Doctor Wallet Address" class="flex-1 border rounded-lg p-2 outline-none focus:border-medical">
+                            <button id="btn-reg-doctor" class="bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700">Register</button>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="admin-reg-patient" placeholder="Patient Wallet Address" class="flex-1 border rounded-lg p-2 outline-none focus:border-medical">
+                            <button id="btn-reg-patient" class="bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700">Register</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Blood Bank Override -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+                    <h2 class="text-xl font-bold text-blood mb-4 border-b pb-2">Blood Inventory Control</h2>
+                    <div class="flex gap-2">
+                        <select id="admin-blood-type" class="border rounded-lg p-2 outline-none bg-white">
+                            <option value="A+">A+</option>
+                            <option value="O-">O-</option>
+                            <option value="B+">B+</option>
+                            <option value="AB+">AB+</option>
+                        </select>
+                        <input type="number" id="admin-blood-units" placeholder="Units" class="w-24 border rounded-lg p-2 outline-none">
+                        <button id="btn-update-blood" class="bg-blood text-white px-4 flex-1 rounded-lg hover:bg-red-700 shadow-sm font-semibold">Update Ledger</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Global Toast Alert -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-6 py-3 rounded-lg shadow-xl translate-y-20 opacity-0 transition-all duration-300 z-50">
+        Message Here
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
